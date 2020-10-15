@@ -37,7 +37,7 @@
 #   include <Windows.h>
 #elif defined(ZYAN_APPLE)
 #   include <mach/mach_time.h>
-#elif defined(ZYAN_LINUX)
+#elif defined(ZYAN_LINUX) || defined(ZYAN_SOLARIS)
 #   include <sys/time.h>
 #   include <pthread.h>
 #elif defined(ZYAN_FREEBSD)
@@ -74,16 +74,16 @@ static ZyanBool g_vt100_stderr;
 /* ---------------------------------------------------------------------------------------------- */
 
 /**
- * @brief   Conditionally expands to the passed VT100 sequence, if `g_colors_stdout` is
- *          `ZYAN_TRUE`, or an empty string, if not.
+ * Conditionally expands to the passed VT100 sequence, if `g_colors_stdout` is
+ * `ZYAN_TRUE`, or an empty string, if not.
  *
  * @param   The VT100 SGT sequence.
  */
 #define CVT100_OUT(sequence) (g_vt100_stdout ? (sequence) : "")
 
 /**
- * @brief   Conditionally expands to the passed VT100 sequence, if `g_colors_stderr` is
- *          `ZYAN_TRUE`, or an empty string, if not.
+ * Conditionally expands to the passed VT100 sequence, if `g_colors_stderr` is
+ * `ZYAN_TRUE`, or an empty string, if not.
  *
  * @param   The VT100 SGT sequence.
  */
@@ -147,7 +147,7 @@ static double GetCounter(void)
     return (double)elapsed * timebase_info.numer / timebase_info.denom / 1000000;
 }
 
-#elif defined(ZYAN_LINUX) || defined(ZYAN_FREEBSD)
+#elif defined(ZYAN_LINUX) || defined(ZYAN_FREEBSD) || defined(ZYAN_SOLARIS)
 
 struct timeval t1;
 
@@ -239,7 +239,7 @@ static ZyanU64 ProcessBuffer(const ZydisDecoder* decoder, const ZydisFormatter* 
         if (use_cache)
         {
             ZYAN_UNREACHABLE;
-            // status = ZydisDecoderDecodeBufferCached(decoder, cache, buffer + offset, 
+            // status = ZydisDecoderDecodeBufferCached(decoder, cache, buffer + offset,
             //     length - offset, &instruction);
         } else
         {

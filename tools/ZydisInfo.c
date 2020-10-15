@@ -26,8 +26,8 @@
 
 /**
  * @file
- * @brief   Disassembles a given hex-buffer and prints detailed information about the decoded
- *          instruction, the operands and additional attributes.
+ * Disassembles a given hex-buffer and prints detailed information about the decoded
+ * instruction, the operands and additional attributes.
  */
 
 #include <inttypes.h>
@@ -64,16 +64,16 @@ static ZyanBool g_vt100_stderr;
 /* ---------------------------------------------------------------------------------------------- */
 
 /**
- * @brief   Conditionally expands to the passed VT100 sequence, if `g_colors_stdout` is
- *          `ZYAN_TRUE`, or an empty string, if not.
+ * Conditionally expands to the passed VT100 sequence, if `g_colors_stdout` is
+ * `ZYAN_TRUE`, or an empty string, if not.
  *
  * @param   The VT100 SGT sequence.
  */
 #define CVT100_OUT(sequence) (g_vt100_stdout ? (sequence) : "")
 
 /**
- * @brief   Conditionally expands to the passed VT100 sequence, if `g_colors_stderr` is
- *          `ZYAN_TRUE`, or an empty string, if not.
+ * Conditionally expands to the passed VT100 sequence, if `g_colors_stderr` is
+ * `ZYAN_TRUE`, or an empty string, if not.
  *
  * @param   The VT100 SGT sequence.
  */
@@ -90,7 +90,7 @@ static ZyanBool g_vt100_stderr;
 /* ---------------------------------------------------------------------------------------------- */
 
 /**
- * @brief   Formats the given zyan status code to a human readable string.
+ * Formats the given zyan status code to a human readable string.
  *
  * @param   status  The zyan status code.
  *
@@ -150,7 +150,7 @@ static const char* FormatZyanStatus(ZyanStatus status)
 /* ---------------------------------------------------------------------------------------------- */
 
 /**
- * @brief   Prints a section header.
+ * Prints a section header.
  *
  * @param   name    The section name.
  */
@@ -164,7 +164,7 @@ static void PrintSectionHeader(const char* name)
 }
 
 /**
- * @brief   Prints a value label.
+ * Prints a value label.
  *
  * @param   name    The value name.
  */
@@ -175,7 +175,7 @@ static void PrintValueLabel(const char* name)
 }
 
 /**
- * @brief   Prints a formatted value using red color.
+ * Prints a formatted value using red color.
  *
  * @param   name    The value name.
  * @param   format  The format string.
@@ -187,7 +187,7 @@ static void PrintValueLabel(const char* name)
         CVT100_OUT(COLOR_DEFAULT));
 
 /**
- * @brief   Prints a formatted value using green color.
+ * Prints a formatted value using green color.
  *
  * @param   name    The value name.
  * @param   format  The format string.
@@ -199,7 +199,7 @@ static void PrintValueLabel(const char* name)
         CVT100_OUT(COLOR_DEFAULT));
 
 /**
- * @brief   Prints a formatted value using blue color.
+ * Prints a formatted value using blue color.
  *
  * @param   name    The value name.
  * @param   format  The format string.
@@ -217,7 +217,7 @@ static void PrintValueLabel(const char* name)
 /* ============================================================================================== */
 
 /**
- * @brief   Prints instruction segments (parts).
+ * Prints instruction segments (parts).
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  * @param   buffer      The buffer that contains the instruction bytes.
@@ -356,7 +356,7 @@ static void PrintSegments(const ZydisDecodedInstruction* instruction, const Zyan
 }
 
 /**
- * @brief   Prints instruction operands info.
+ * Prints instruction operands info.
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  */
@@ -561,7 +561,7 @@ static void PrintOperands(const ZydisDecodedInstruction* instruction)
 }
 
 /**
- * @brief   Prints instruction flags info.
+ * Prints instruction flags info.
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  */
@@ -636,7 +636,7 @@ static void PrintFlags(const ZydisDecodedInstruction* instruction)
 }
 
 /**
- * @brief   Prints instruction AVX info.
+ * Prints instruction AVX info.
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  */
@@ -734,7 +734,7 @@ static void PrintAVXInfo(const ZydisDecodedInstruction* instruction)
 }
 
 /**
- * @brief   Prints the tokenized instruction.
+ * Prints the tokenized instruction.
  *
  * @param   token   A pointer to the first token.
  */
@@ -795,7 +795,7 @@ static void PrintTokenizedInstruction(const ZydisFormatterToken* token)
 }
 
 /**
- * @brief   Prints the formatted instruction disassembly.
+ * Prints the formatted instruction disassembly.
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  * @param   style       The formatter style.
@@ -847,7 +847,7 @@ static void PrintDisassembly(const ZydisDecodedInstruction* instruction,
 }
 
 /**
- * @brief   Dumps basic instruction info.
+ * Dumps basic instruction info.
  *
  * @param   instruction A pointer to the `ZydisDecodedInstruction` struct.
  */
@@ -1098,39 +1098,51 @@ int main(int argc, char** argv)
     }
 
     ZyanU8 data[ZYDIS_MAX_INSTRUCTION_LENGTH];
-    ZyanU8 length = 0;
-    for (ZyanU8 i = 0; i < argc - 2; ++i)
+    ZyanU8 byte_length = 0;
+    for (ZyanU8 i = 2; i < argc; ++i)
     {
-        if (length == ZYDIS_MAX_INSTRUCTION_LENGTH)
+        char* cur_arg = argv[i];
+
+        // Strip whitespace in-place.
+        const ZyanUSize arg_len = ZYAN_STRLEN(cur_arg);
+        ZyanUSize write = 0;
+        for (ZyanUSize read = 0; read < arg_len; ++read)
+        {
+            char ch = cur_arg[read];
+            if (ch == ' ' || ch == '\t') continue;
+            cur_arg[write++] = ch;
+        }
+        cur_arg[write] = '\0';
+
+        if (write % 2)
+        {
+            ZYAN_FPRINTF(ZYAN_STDERR, "%sEven number of hex nibbles expected%s\n",
+                CVT100_ERR(COLOR_ERROR), CVT100_ERR(ZYAN_VT100SGR_RESET));
+            return ZYAN_STATUS_INVALID_ARGUMENT;
+        }
+        if ((write / 2) + byte_length >= ZYDIS_MAX_INSTRUCTION_LENGTH)
         {
             ZYAN_FPRINTF(ZYAN_STDERR, "%sMaximum number of %d bytes exceeded%s\n",
                 CVT100_ERR(COLOR_ERROR), ZYDIS_MAX_INSTRUCTION_LENGTH,
                 CVT100_ERR(ZYAN_VT100SGR_RESET));
             return ZYAN_STATUS_INVALID_ARGUMENT;
         }
-        const ZyanUSize len = ZYAN_STRLEN(argv[i + 2]);
-        if (len % 2)
-        {
-            ZYAN_FPRINTF(ZYAN_STDERR, "%sEven number of hex nibbles expected%s\n",
-                CVT100_ERR(COLOR_ERROR), CVT100_ERR(ZYAN_VT100SGR_RESET));
-            return ZYAN_STATUS_INVALID_ARGUMENT;
-        }
-        for (ZyanU8 j = 0; j < len / 2; ++j)
+        for (ZyanU8 j = 0; j < write / 2; ++j)
         {
             unsigned value;
-            if (!ZYAN_SSCANF(&argv[i + 2][j * 2], "%02x", &value))
+            if (!ZYAN_SSCANF(&cur_arg[j * 2], "%02x", &value))
             {
                 ZYAN_FPRINTF(ZYAN_STDERR, "%sInvalid hex value%s\n",
                     CVT100_ERR(COLOR_ERROR), CVT100_ERR(ZYAN_VT100SGR_RESET));
                 return ZYAN_STATUS_INVALID_ARGUMENT;
             }
-            data[length] = (ZyanU8)value;
-            ++length;
+            data[byte_length] = (ZyanU8)value;
+            ++byte_length;
         }
     }
 
     ZydisDecodedInstruction instruction;
-    const ZyanStatus status = ZydisDecoderDecodeBuffer(&decoder, &data, length, &instruction);
+    const ZyanStatus status = ZydisDecoderDecodeBuffer(&decoder, &data, byte_length, &instruction);
     if (!ZYAN_SUCCESS(status))
     {
         if (ZYAN_STATUS_MODULE(status) >= ZYAN_MODULE_USER)
